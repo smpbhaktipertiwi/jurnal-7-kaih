@@ -1216,6 +1216,13 @@ function formatTanggalIndo(iso){
   return d.getDate()+' '+bln[d.getMonth()]+' '+d.getFullYear();
 }
 
+function formatTanggalSingkat(iso){
+  if(!iso) return '-';
+  const d=new Date(iso+'T00:00:00');
+  const bln=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return d.getDate()+' '+bln[d.getMonth()]+' '+d.getFullYear();
+}
+
 async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKepala){
   const kebiasaan = [
     {key:'bangun_pagi',nama:'Bangun Pagi'},
@@ -1249,10 +1256,10 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
   const nilaiAkhir = countK>0 ? totalNilai/countK : 0;
   const predAkhir = hitungPredikat(nilaiAkhir);
   const adaData = jurnalList.length > 0;
-  const periodeText = (range && range.start && range.end) ? formatTanggalIndo(range.start)+' s.d. '+formatTanggalIndo(range.end) : '-';
+  const periodeText = (range && range.start && range.end) ? formatTanggalSingkat(range.start)+' s.d. '+formatTanggalSingkat(range.end) : '-';
   const _now = new Date();
   const _isoHariIni = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
-  const tanggalHariIni = 'Tangerang, ' + formatTanggalIndo(_isoHariIni);
+  const tanggalHariIni = 'Tangerang, ' + formatTanggalSingkat(_isoHariIni);
 
   const terkuat = tabelData.reduce((max,d)=> (parseFloat(d[5])>parseFloat(max[5])?d:max), tabelData[0]);
   const catatan = adaData ? `Ananda ${escapeHtml(siswa.nama_lengkap||siswa.nama)} telah mengisi jurnal sebanyak ${jurnalList.length} hari. Kebiasaan yang paling kuat adalah ${escapeHtml(terkuat?.[1]||'-')}. ${keteranganPredikat(predAkhir)} setiap hari.` : 'Belum tersedia data jurnal pada periode yang dipilih.';
@@ -1329,30 +1336,30 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
       <div style="border:1px solid #d0d0d0;padding:15px;font-size:14px;margin-bottom:30px;">${catatan}</div>
 
       <div style="display:flex;justify-content:space-between;padding:20px 40px;font-size:14px;margin-bottom:20px;">
-        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:170px;text-align:center;">
           <div style="margin-top:25px;">
             Mengetahui,<br>
             Orang Tua/Wali
           </div>
           <div>
-            ( ______________________ )
+            ______________________
           </div>
         </div>
-        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:170px;text-align:center;">
           <div style="margin-top:25px;">
             Wali Kelas
           </div>
-          <div style="font-weight:bold;">
-            ( ${escapeHtml(waliKelas||'-')} )
+          <div style="font-weight:bold;text-decoration:underline;">
+            ${escapeHtml(waliKelas||'-')}
           </div>
         </div>
-        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:170px;text-align:center;">
           <div>
-            <div style="font-weight:bold;margin-bottom:5px;">${tanggalHariIni}</div>
+            <div style="font-weight:bold;margin-bottom:5px;white-space:nowrap;">${tanggalHariIni}</div>
             <div>Kepala Sekolah</div>
           </div>
-          <div style="font-weight:bold;">
-            ( ${escapeHtml(namaKepala||'-')} )
+          <div style="font-weight:bold;text-decoration:underline;">
+            ${escapeHtml(namaKepala||'-')}
           </div>
         </div>
       </div>
@@ -1507,28 +1514,25 @@ async function unduhPdfDariHtml(htmlContent, namaFile) {
   tempDiv.style.width = '794px';
   document.body.appendChild(tempDiv);
   try {
+    const contentHeight = tempDiv.scrollHeight;
     const canvas = await html2canvas(tempDiv, {
       logging: false,
       useCORS: true,
       backgroundColor: '#ffffff',
       width: 794,
-      height: 1123
+      height: contentHeight
     });
     const img = canvas.toDataURL('image/png');
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const imgWidth = pageWidth;
-    const imgHeight = canvas.height * imgWidth / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-    doc.addImage(img, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      doc.addPage();
-      doc.addImage(img, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
+    // Satu laporan = satu halaman A4, dengan margin 10 mm supaya tidak terpotong.
+    const margin = 10;
+    const scale = Math.min((pageWidth - margin*2) / canvas.width, (pageHeight - margin*2) / canvas.height);
+    const imgWidth = canvas.width * scale;
+    const imgHeight = canvas.height * scale;
+    const x = (pageWidth - imgWidth) / 2;
+    const y = (pageHeight - imgHeight) / 2;
+    doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
     doc.save(namaFile);
   } finally {
     document.body.removeChild(tempDiv);
@@ -1620,21 +1624,27 @@ async function unduhPdfSemua(daftar, range) {
         tempDiv.style.top = '-10000px';
         tempDiv.style.width = '794px';
         document.body.appendChild(tempDiv);
+        const contentHeight = tempDiv.scrollHeight;
         const canvas = await html2canvas(tempDiv, {
           logging: false,
           useCORS: true,
           backgroundColor: '#ffffff',
           width: 794,
-          height: 1123
+          height: contentHeight
         });
         document.body.removeChild(tempDiv);
         const img = canvas.toDataURL('image/png');
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const imgWidth = pageWidth;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
+        // Satu siswa = satu halaman A4, dengan margin 10 mm supaya tidak terpotong.
+        const margin = 10;
+        const scale = Math.min((pageWidth - margin*2) / canvas.width, (pageHeight - margin*2) / canvas.height);
+        const imgWidth = canvas.width * scale;
+        const imgHeight = canvas.height * scale;
+        const x = (pageWidth - imgWidth) / 2;
+        const y = (pageHeight - imgHeight) / 2;
         if (count > 0) doc.addPage();
-        doc.addImage(img, 'PNG', 0, 0, imgWidth, imgHeight);
+        doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
         count++;
       } catch (e) {
         console.error('Gagal cetak siswa', item.siswa.nisn, e);
