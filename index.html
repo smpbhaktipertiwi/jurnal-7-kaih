@@ -1274,27 +1274,27 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
     <div style="padding: 0 15px;">
       <table style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px;">
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; width: 15%;">NISN</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 35%;">${escapeHtml(siswa.nisn)}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; width: 15%;">Jumlah Mengisi</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 35%; text-align:center;">${jurnalList.length}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap; width: 17%;">NISN</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 33%;">${escapeHtml(siswa.nisn)}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap; width: 17%;">Jumlah Mengisi</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 33%; text-align:center;">${jurnalList.length}</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Nama Siswa</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Nama Siswa</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">${escapeHtml(siswa.nama_lengkap)}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Nilai Akhir</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Nilai Akhir</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; text-align:center;">${adaData ? nilaiAkhir.toFixed(2) : ''}</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Kelas</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Kelas</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${escapeHtml(siswa.kelas)}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Predikat Akhir</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Predikat Akhir</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; text-align:center;">${adaData ? predAkhir : '-'}</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Periode</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Periode</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${periodeText}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Wali Kelas</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; white-space:nowrap;">Wali Kelas</td>
           <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${escapeHtml(waliKelas||'-')}</td>
         </tr>
       </table>
@@ -1304,27 +1304,27 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
         <thead>
           <tr>
-            <th width="5%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">No</th>
-            <th width="25%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Kebiasaan</th>
-            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah A</th>
-            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah B</th>
-            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah C</th>
-            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Rata-rata</th>
-            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Predikat</th>
-            <th width="20%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Keterangan</th>
+            <th width="6%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">No</th>
+            <th width="23%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Kebiasaan</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Jumlah A</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Jumlah B</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Jumlah C</th>
+            <th width="12%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Rata-rata</th>
+            <th width="9%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Predikat</th>
+            <th width="20%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;white-space:nowrap;">Keterangan</th>
           </tr>
         </thead>
         <tbody>
           ${tabelData.map(d=>`
             <tr>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[0]}</td>
-              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:left;">${escapeHtml(d[1])}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:left;font-weight:bold;">${escapeHtml(d[1])}</td>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[2]}</td>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[3]}</td>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[4]}</td>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[5]}</td>
               <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;font-weight:bold;">${d[6]}</td>
-              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${escapeHtml(d[7])}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:left;">${escapeHtml(d[7])}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -1531,7 +1531,7 @@ async function unduhPdfDariHtml(htmlContent, namaFile) {
     const imgWidth = canvas.width * scale;
     const imgHeight = canvas.height * scale;
     const x = (pageWidth - imgWidth) / 2;
-    const y = (pageHeight - imgHeight) / 2;
+    const y = margin;
     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
     doc.save(namaFile);
   } finally {
@@ -1642,7 +1642,7 @@ async function unduhPdfSemua(daftar, range) {
         const imgWidth = canvas.width * scale;
         const imgHeight = canvas.height * scale;
         const x = (pageWidth - imgWidth) / 2;
-        const y = (pageHeight - imgHeight) / 2;
+        const y = margin;
         if (count > 0) doc.addPage();
         doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
         count++;
