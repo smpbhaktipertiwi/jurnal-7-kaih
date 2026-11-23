@@ -473,7 +473,7 @@ td.sudah.no{color:#f87171;}
   padding:32px;max-width:520px;width:90%;text-align:center;box-shadow:var(--shadow-hover);
 }
 .result-box h2{margin:0 0 10px;font-size:1.4rem;}
-.result-box p{color:var(--muted);margin:0 0 20px;font-size:14px;}
+.result-box p, .result-box #resultMessage{color:var(--muted);margin:0 0 20px;font-size:14px;}
 .btn-ok{
   padding:12px 24px;color:#fff;background:linear-gradient(135deg,var(--gold),#EA580C);border-radius:10px;font-weight:700;
 }
@@ -770,7 +770,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
   <div id="overlayEl" class="overlay">
     <div class="result-box" id="resultBox">
       <h2 id="resultTitle">Jurnal Berhasil Dikirim</h2>
-      <p id="resultMessage">Data jurnal sudah tersimpan di sekolah.</p>
+      <div id="resultMessage">Data jurnal sudah tersimpan di sekolah.</div>
       <a id="resultLink" href="#" target="_blank" style="color:var(--gold);font-weight:700;text-decoration:underline;">Buka unduhan</a>
       <div id="tutupResultWrap" style="margin-top:24px;">
         <button class="btn-ok" id="closeResult">Tutup</button>
@@ -1485,28 +1485,31 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
     return;
   }
 
-  let html = `<h3>${escapeHtml(siswa.nama_lengkap || siswa.nama)} (${siswa.kelas})</h3>`;
+  const thDetail = 'background-color:#146e9f;color:white;padding:8px 6px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;letter-spacing:0;white-space:nowrap;';
+  const tdDetail = 'border:1px solid #d0d0d0;padding:8px 6px;font-size:14px;text-align:center;';
+  let html = `<h3 style="margin:0 0 16px;font-size:18px;text-align:center;">${escapeHtml(siswa.nama_lengkap || siswa.nama)} (${siswa.kelas})</h3>`;
   if (!jurnalList.length) {
-    html += `<p>Belum ada data jurnal.</p>`;
+    html += `<p style="text-align:center;color:var(--muted);">Belum ada data jurnal.</p>`;
   } else {
-    html += `<table><thead><tr><th>Tanggal</th><th>Bangun</th><th>Ibadah</th><th>Olahraga</th><th>Makan</th><th>Belajar</th><th>Masyarakat</th><th>Tidur</th><th>A/B/C</th></tr></thead><tbody>`;
+    html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><thead><tr><th width="14%" style="${thDetail}">Tanggal</th><th width="10%" style="${thDetail}">Bangun</th><th width="10%" style="${thDetail}">Ibadah</th><th width="11%" style="${thDetail}">Olahraga</th><th width="10%" style="${thDetail}">Makan</th><th width="11%" style="${thDetail}">Belajar</th><th width="13%" style="${thDetail}">Masyarakat</th><th width="11%" style="${thDetail}">Tidur</th><th width="10%" style="${thDetail}">A/B/C</th></tr></thead><tbody>`;
     jurnalList.forEach(j => {
       html += `<tr>
-        <td>${formatTanggalIndo(j.tanggal_jurnal)}</td>
-        <td>${j.bangun_pagi||'-'}</td>
-        <td>${j.beribadah||'-'}</td>
-        <td>${j.berolahraga||'-'}</td>
-        <td>${j.makan_sehat||'-'}</td>
-        <td>${j.gemar_belajar||'-'}</td>
-        <td>${j.bermasyarakat||'-'}</td>
-        <td>${j.tidur_cepat||'-'}</td>
-        <td>${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td>
+        <td style="${tdDetail}text-align:left;white-space:nowrap;">${formatTanggalSingkat(j.tanggal_jurnal)}</td>
+        <td style="${tdDetail}">${j.bangun_pagi||'-'}</td>
+        <td style="${tdDetail}">${j.beribadah||'-'}</td>
+        <td style="${tdDetail}">${j.berolahraga||'-'}</td>
+        <td style="${tdDetail}">${j.makan_sehat||'-'}</td>
+        <td style="${tdDetail}">${j.gemar_belajar||'-'}</td>
+        <td style="${tdDetail}">${j.bermasyarakat||'-'}</td>
+        <td style="${tdDetail}">${j.tidur_cepat||'-'}</td>
+        <td style="${tdDetail}font-weight:700;">${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td>
       </tr>`;
     });
-    html += `</tbody></table>`;
+    html += `</tbody></table><p style="margin:0;color:var(--muted);font-size:13px;">Total ${jurnalList.length} entri jurnal</p>`;
   }
 
   resetModeOverlay();
+  byId('resultBox').classList.add('preview');
   byId('resultTitle').textContent = 'Detail Siswa';
   byId('resultMessage').innerHTML = html;
   byId('resultLink').style.display = 'none';
