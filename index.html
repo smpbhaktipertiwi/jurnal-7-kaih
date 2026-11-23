@@ -478,6 +478,9 @@ td.sudah.no{color:#f87171;}
   padding:12px 24px;color:#fff;background:linear-gradient(135deg,var(--gold),#EA580C);border-radius:10px;font-weight:700;
 }
 .btn-ok:hover{filter:brightness(1.05);}
+.result-box.preview{max-width:880px;width:94%;text-align:left;max-height:88vh;overflow:auto;}
+.result-box.preview h2{text-align:center;}
+.preview-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px;}
 
 /* ===== HABIT CARD ===== */
 .habit-card{
@@ -671,7 +674,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
   <section id="viewMonitoring" class="content-card" style="display:none;">
     <div class="content-header">
       <h2>Monitoring Kelas</h2>
-      <p>Pantau pengisian jurnal harian siswa per kelas.</p>
+      <p>Pantau pengisian jurnal harian siswa per tanggal.</p>
     </div>
     <div class="content-body">
       <div class="section-head">
@@ -684,12 +687,8 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
 
       <div class="form-grid">
         <div class="field">
-          <label for="tglAwal">Tanggal Awal</label>
-          <input id="tglAwal" type="date" required>
-        </div>
-        <div class="field">
-          <label for="tglAkhir">Tanggal Akhir</label>
-          <input id="tglAkhir" type="date" required>
+          <label for="tglMonitoring">Tanggal Monitoring</label>
+          <input id="tglMonitoring" type="date" required>
         </div>
       </div>
 
@@ -721,7 +720,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
   <section id="viewCetak" class="content-card" style="display:none;">
     <div class="content-header">
       <h2>Cetak Rapor</h2>
-      <p>Cetak laporan jurnal harian siswa.</p>
+      <p>Cetak laporan jurnal harian siswa per rentang tanggal. Tersedia cetak semua siswa atau cetak per siswa — semua cetak diawali pratinjau.</p>
     </div>
     <div class="content-body">
       <div class="section-head">
@@ -748,17 +747,37 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
         <button class="submit-button" id="btnCetakSemua" type="button" style="background:linear-gradient(135deg,#10B981,#059669);"><i class="fa-solid fa-print"></i> Cetak Semua Raport</button>
         <button class="clear-button" id="btnExportExcel" type="button"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
       </div>
+
+      <div id="daftarCetakContainer" style="margin-top:24px;overflow-x:auto;">
+        <p id="daftarCetakInfo" style="color:var(--muted);font-size:14px;margin:0 0 12px 0;">Daftar siswa akan dimuat setelah rentang tanggal dipilih.</p>
+        <table id="tabelCetak" style="display:none;">
+          <thead>
+            <tr>
+              <th style="width:40px;">No</th>
+              <th>NISN</th>
+              <th>Nama Lengkap</th>
+              <th style="width:120px;">Status</th>
+              <th style="width:140px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelCetakSiswa"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
   <!-- ============ RESULT OVERLAY ============ -->
   <div id="overlayEl" class="overlay">
-    <div class="result-box">
+    <div class="result-box" id="resultBox">
       <h2 id="resultTitle">Jurnal Berhasil Dikirim</h2>
       <p id="resultMessage">Data jurnal sudah tersimpan di sekolah.</p>
       <a id="resultLink" href="#" target="_blank" style="color:var(--gold);font-weight:700;text-decoration:underline;">Buka unduhan</a>
-      <div style="margin-top:24px;">
+      <div id="tutupResultWrap" style="margin-top:24px;">
         <button class="btn-ok" id="closeResult">Tutup</button>
+      </div>
+      <div id="previewActions" class="preview-actions" style="display:none;">
+        <button class="clear-button" type="button" id="btnBatalPreview">Batal</button>
+        <button class="submit-button" type="button" id="btnKonfirmasiCetak"><span>Ya, Cetak</span></button>
       </div>
     </div>
   </div>
@@ -950,12 +969,11 @@ byId('btnBatalLogin').addEventListener('click',()=>tampilkanView('siswa'));
 byId('btnBatalMonitoring').addEventListener('click',()=>tampilkanView('siswa'));
 byId('btnKembaliDariCetak').addEventListener('click',()=>tampilkanView('monitoring'));
 byId('btnBukaCetak').addEventListener('click',()=>{
-  byId('tglAwalCetak').value = byId('tglAwal').value;
-  byId('tglAkhirCetak').value = byId('tglAkhir').value;
   byId('heroKelasCetak').textContent = byId('heroKelas').textContent;
   byId('heroJumlahCetak').textContent = byId('heroJumlah').textContent;
   byId('infoJumlahCetak').textContent = byId('infoJumlah').textContent;
   tampilkanView('cetak');
+  muatDaftarCetak();
 });
 
 async function loginGuru(){
@@ -982,8 +1000,9 @@ async function loginGuru(){
     state.namaSekolah=row.nama_sekolah||'';
     byId('heroKelas').textContent=row.kelas;
     byId('heroJumlah').textContent=state.siswa.length+' siswa terdaftar di kelas ini.';
-    byId('tglAwal').value=row.default_start||'';
-    byId('tglAkhir').value=row.default_end||'';
+    byId('tglMonitoring').value=row.default_end||todayJakarta();
+    byId('tglAwalCetak').value=row.default_start||'';
+    byId('tglAkhirCetak').value=row.default_end||'';
     byId('infoJumlah').textContent='Total '+state.siswa.length+' siswa.';
     renderTabelSiswa();
     tampilkanView('monitoring');
@@ -1024,6 +1043,64 @@ byId('btnExportExcel').addEventListener('click',()=>{
   const a=document.createElement('a');a.href=url;a.download='monitoring-kelas-'+state.kelas+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
 });
 
+/* Daftar siswa untuk cetak per siswa (view Cetak): status dihitung per rentang tanggal cetak. */
+async function muatDaftarCetak(){
+  const tbody=byId('tabelCetakSiswa');
+  let range;
+  try { range=bacaTanggalCetak(); }
+  catch(e){
+    tbody.innerHTML='';
+    byId('tabelCetak').style.display='none';
+    byId('daftarCetakInfo').textContent=e.message;
+    return;
+  }
+  byId('daftarCetakInfo').textContent='Memuat daftar siswa...';
+  try {
+    const { data: siswaList, error: errSiswa } = await _sb
+      .from('siswa')
+      .select('nisn, nama_lengkap, kelas')
+      .eq('kelas', state.kelas)
+      .order('nisn');
+    if (errSiswa) throw errSiswa;
+    const { data: jurnalList, error: errJurnal } = await _sb
+      .from('jurnal_harian')
+      .select('nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
+      .gte('tanggal_jurnal', range.start)
+      .lte('tanggal_jurnal', range.end);
+    if (errJurnal) throw errJurnal;
+    const byNisn = {};
+    (jurnalList || []).forEach(j => { (byNisn[j.nisn] = byNisn[j.nisn] || []).push(j); });
+    tbody.innerHTML = '';
+    (siswaList || []).forEach((s, i) => {
+      const journals = byNisn[s.nisn] || [];
+      const sudah = journals.length > 0;
+      const tr = document.createElement('tr');
+      const tdNo = document.createElement('td'); tdNo.textContent = i + 1;
+      const tdNisn = document.createElement('td'); tdNisn.className = 'nisn'; tdNisn.textContent = s.nisn;
+      const tdNama = document.createElement('td'); tdNama.className = 'nama'; tdNama.textContent = s.nama_lengkap || s.nama;
+      const tdStatus = document.createElement('td'); tdStatus.className = 'sudah ' + (sudah ? 'yes' : 'no');
+      tdStatus.textContent = sudah ? 'Sudah' : 'Belum';
+      const tdAksi = document.createElement('td'); tdAksi.className = 'td-aksi';
+      const btnCetak = document.createElement('button');
+      btnCetak.className = 'btn-mini'; btnCetak.textContent = 'Cetak';
+      btnCetak.disabled = !sudah;
+      btnCetak.addEventListener('click', () => previewSiswa(s, journals, { mode: 'cetak', range }));
+      tdAksi.append(btnCetak);
+      tr.append(tdNo, tdNisn, tdNama, tdStatus, tdAksi);
+      tbody.appendChild(tr);
+    });
+    byId('tabelCetak').style.display = (siswaList && siswaList.length) ? 'table' : 'none';
+    byId('daftarCetakInfo').textContent = 'Periode ' + formatTanggalIndo(range.start) + ' s.d. ' + formatTanggalIndo(range.end) + ' — ' + (siswaList || []).length + ' siswa.';
+  } catch (e) {
+    byId('daftarCetakInfo').textContent = (e && e.message) || 'Gagal memuat daftar cetak.';
+  }
+}
+['tglAwalCetak','tglAkhirCetak'].forEach(id=>{
+  byId(id).addEventListener('change',()=>{
+    if (views.cetak.style.display !== 'none') muatDaftarCetak();
+  });
+});
+
 
 function renderTabelSiswa(){
   const tbody=byId('tabelSiswa');
@@ -1038,31 +1115,70 @@ function renderTabelSiswa(){
     const btnLihat=document.createElement('button');
     btnLihat.className='btn-mini'; btnLihat.textContent='Lihat';
     btnLihat.addEventListener('click',()=>previewSiswa(s));
-    const btnCetak=document.createElement('button');
-    btnCetak.className='btn-mini'; btnCetak.textContent='Cetak';
-    btnCetak.addEventListener('click',()=>cetakSiswa(s,btnCetak));
-    tdAksi.append(btnLihat, btnCetak);
+    tdAksi.append(btnLihat);
     tr.append(tdNo,tdNisn,tdNama,tdStatus,tdAksi);
     tbody.appendChild(tr);
   });
   byId('tabelMonitoring').style.display = state.siswa.length ? 'table' : 'none';
 }
 
-function bacaTanggal(){
-  const s=byId('tglAwal').value;
-  const e=byId('tglAkhir').value;
+function bacaTanggalMonitoring(){
+  const t=byId('tglMonitoring').value;
+  if(!t) throw new Error('Pilih tanggal monitoring.');
+  return t;
+}
+
+function bacaTanggalCetak(){
+  const s=byId('tglAwalCetak').value;
+  const e=byId('tglAkhirCetak').value;
   if(!s||!e) throw new Error('Isi tanggal awal dan tanggal akhir.');
   if(s>e) throw new Error('Tanggal awal harus sebelum tanggal akhir.');
   return { start:s, end:e };
 }
 
+let aksiPreview=null;
+function resetModeOverlay(){
+  aksiPreview=null;
+  byId('previewActions').style.display='none';
+  byId('tutupResultWrap').style.display='block';
+  byId('resultBox').classList.remove('preview');
+}
+
 function showResult(title,msgText,url){
+  resetModeOverlay();
   byId('resultTitle').textContent=title;
   byId('resultMessage').textContent=msgText||'';
   const a=byId('resultLink');
   if(url){ a.style.display='inline-block'; a.href=url; } else { a.style.display='none'; }
   overlayEl.classList.add('show');
 }
+
+/* Pratinjau sebelum cetak: tampilkan isi yang akan dicetak beserta tombol konfirmasi.
+   Tidak ada jalur cetak yang melewati pratinjau ini. */
+function tampilkanPreview(judul, html, labelKonfirmasi, onKonfirmasi){
+  byId('resultTitle').textContent=judul;
+  byId('resultMessage').innerHTML=html;
+  byId('resultLink').style.display='none';
+  byId('tutupResultWrap').style.display='none';
+  byId('previewActions').style.display='flex';
+  byId('btnKonfirmasiCetak').textContent=labelKonfirmasi||'Ya, Cetak';
+  aksiPreview=onKonfirmasi||null;
+  byId('resultBox').classList.add('preview');
+  overlayEl.classList.add('show');
+}
+function tutupPreview(){
+  aksiPreview=null;
+  byId('previewActions').style.display='none';
+  byId('tutupResultWrap').style.display='block';
+  byId('resultBox').classList.remove('preview');
+  overlayEl.classList.remove('show');
+}
+byId('btnBatalPreview').addEventListener('click',tutupPreview);
+byId('btnKonfirmasiCetak').addEventListener('click',()=>{
+  const aksi=aksiPreview;
+  tutupPreview();
+  if(aksi){ showToast('Membuat PDF, mohon tunggu...'); aksi(); }
+});
 
 function handleError(e){
   const m=(e && e.message)||'';
@@ -1159,6 +1275,8 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
         </tr>
       </table>
 
+      ${range && range.start && range.end ? `<p style="margin:0 0 15px;font-size:13px;">Periode laporan: <strong>${formatTanggalIndo(range.start)} s.d. ${formatTanggalIndo(range.end)}</strong></p>` : ''}
+
       <h3 style="color:#146e9f;margin-top:0;">Nilai Per Kebiasaan</h3>
       <table style="width:100%;border-collapse:collapse;">
         <thead>
@@ -1219,7 +1337,7 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
 
 byId('btnCariKelas').addEventListener('click', async () => {
   try {
-    const range = bacaTanggal();
+    const tanggal = bacaTanggalMonitoring();
     const btn = byId('btnCariKelas');
     btn.disabled = true;
     btn.textContent = 'Memuat data...';
@@ -1235,8 +1353,7 @@ byId('btnCariKelas').addEventListener('click', async () => {
     const { data: jurnalList, error: errJurnal } = await _sb
       .from('jurnal_harian')
       .select('nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
-      .gte('tanggal_jurnal', range.start)
-      .lte('tanggal_jurnal', range.end);
+      .eq('tanggal_jurnal', tanggal);
 
     if (errJurnal) throw errJurnal;
 
@@ -1264,12 +1381,7 @@ byId('btnCariKelas').addEventListener('click', async () => {
       btnLihat.className = 'btn-mini'; btnLihat.textContent = 'Lihat';
       btnLihat.addEventListener('click', () => previewSiswa(s, journals));
 
-      const btnCetak = document.createElement('button');
-      btnCetak.className = 'btn-mini'; btnCetak.textContent = 'Cetak';
-      btnCetak.disabled = !sudah;
-      btnCetak.addEventListener('click', () => cetakSiswa(s, btnCetak, journals));
-
-      tdAksi.append(btnLihat, btnCetak);
+      tdAksi.append(btnLihat);
       tr.append(tdNo, tdNisn, tdNama, tdStatus, tdAksi);
       tbody.appendChild(tr);
     });
@@ -1284,25 +1396,48 @@ byId('btnCariKelas').addEventListener('click', async () => {
   }
 });
 
-async function previewSiswa(siswa, jurnalList = null) {
+async function previewSiswa(siswa, jurnalList = null, opts = {}) {
+  // Mode 'detail' (default): lihat rincian entri jurnal siswa (tombol Lihat di Monitoring).
+  // Mode 'cetak': pratinjau laporan siswa untuk rentang cetak, dengan tombol konfirmasi
+  // "Ya, Cetak" (tombol Cetak per baris di view Cetak). Tidak ada jalur cetak tanpa pratinjau.
+  const modeCetak = opts.mode === 'cetak';
   const btn = document.activeElement;
+  const labelBtn = modeCetak ? 'Cetak' : 'Lihat';
   if (btn) btn.textContent = 'Memuat...';
 
+  let range = opts.range || null;
+  if (modeCetak && !range) {
+    try { range = bacaTanggalCetak(); }
+    catch (e) { showResult('Gagal', e.message, null); if (btn) btn.textContent = labelBtn; return; }
+  }
+
   if (!jurnalList) {
-    if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); if (btn) btn.textContent = 'Lihat'; return; }
+    if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); if (btn) btn.textContent = labelBtn; return; }
     try {
-      const { data, error } = await _sb
-        .from('jurnal_harian')
-        .select('*')
-        .eq('nisn', siswa.nisn)
-        .order('tanggal_jurnal', { ascending: false });
+      let q = _sb.from('jurnal_harian').select('*').eq('nisn', siswa.nisn);
+      if (modeCetak && range) q = q.gte('tanggal_jurnal', range.start).lte('tanggal_jurnal', range.end);
+      const { data, error } = await q.order('tanggal_jurnal', { ascending: false });
       if (error) throw error;
       jurnalList = data || [];
     } catch (e) {
       showResult('Gagal', (e && e.message) || 'Gagal memuat data siswa.', null);
-      if (btn) btn.textContent = 'Lihat';
+      if (btn) btn.textContent = labelBtn;
       return;
     }
+  }
+
+  if (modeCetak) {
+    if (!jurnalList.length) {
+      showResult('Gagal', 'Belum ada data jurnal untuk dicetak pada rentang ini.', null);
+      if (btn) btn.textContent = labelBtn;
+      return;
+    }
+    const htmlContent = await drawRapor(null, siswa, jurnalList, range, 1, state.namaWali || '-', state.namaKepala || '-');
+    tampilkanPreview('Pratinjau Laporan — ' + (siswa.nama_lengkap || siswa.nama),
+      htmlContent, 'Ya, Cetak',
+      () => unduhPdfSiswa(siswa, jurnalList, range));
+    if (btn) btn.textContent = labelBtn;
+    return;
   }
 
   let html = `<h3>${escapeHtml(siswa.nama_lengkap || siswa.nama)} (${siswa.kelas})</h3>`;
@@ -1326,6 +1461,7 @@ async function previewSiswa(siswa, jurnalList = null) {
     html += `</tbody></table>`;
   }
 
+  resetModeOverlay();
   byId('resultTitle').textContent = 'Detail Siswa';
   byId('resultMessage').innerHTML = html;
   byId('resultLink').style.display = 'none';
@@ -1333,47 +1469,17 @@ async function previewSiswa(siswa, jurnalList = null) {
   if (btn) btn.textContent = 'Lihat';
 }
 
-async function cetakSiswa(siswa, btn, jurnalList = null) {
-  if (!jurnalList) {
-    if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); return; }
-    try {
-      const { data, error } = await _sb
-        .from('jurnal_harian')
-        .select('*')
-        .eq('nisn', siswa.nisn)
-        .order('tanggal_jurnal', { ascending: false });
-      if (error) throw error;
-      jurnalList = data || [];
-    } catch (e) {
-      showResult('Gagal', (e && e.message) || 'Gagal memuat data untuk cetak.', null);
-      return;
-    }
-  }
-
-  if (!jurnalList.length) {
-    showResult('Gagal', 'Belum ada data jurnal untuk dicetak.', null);
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Mencetak...';
-
+/* Merender satu laporan (HTML) menjadi PDF A4. Dipakai untuk cetak per siswa. */
+async function unduhPdfDariHtml(htmlContent, namaFile) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  tempDiv.style.position = 'fixed';
+  tempDiv.style.top = '-10000px';
+  tempDiv.style.width = '794px';
+  document.body.appendChild(tempDiv);
   try {
-    // jurnalList terurut DESC: [0] = terbaru, terakhir = terlama
-    const range = { start: jurnalList[jurnalList.length-1].tanggal_jurnal, end: jurnalList[0].tanggal_jurnal };
-    const htmlContent = await drawRapor(null, siswa, jurnalList, range, 1, state.namaWali || '-', state.namaKepala || '-');
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-
-    // Use a hidden div to render
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.top = '-10000px';
-    tempDiv.style.width = '794px';
-    document.body.appendChild(tempDiv);
-
     const canvas = await html2canvas(tempDiv, {
       logging: false,
       useCORS: true,
@@ -1381,9 +1487,6 @@ async function cetakSiswa(siswa, btn, jurnalList = null) {
       width: 794,
       height: 1123
     });
-
-    document.body.removeChild(tempDiv);
-
     const img = canvas.toDataURL('image/png');
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1391,68 +1494,105 @@ async function cetakSiswa(siswa, btn, jurnalList = null) {
     const imgHeight = canvas.height * imgWidth / canvas.width;
     let heightLeft = imgHeight;
     let position = 0;
-
     doc.addImage(img, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       doc.addPage();
       doc.addImage(img, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
+    doc.save(namaFile);
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+}
 
-    doc.save(`Jurnal_${siswa.nisn}_${siswa.nama_lengkap}.pdf`);
-    btn.disabled = false;
-    btn.textContent = 'Cetak';
+/* Membuat & mengunduh PDF laporan satu siswa untuk rentang cetak.
+   Hanya dipanggil dari konfirmasi pratinjau (tombol "Ya, Cetak"). */
+async function unduhPdfSiswa(siswa, jurnalList, range) {
+  if (!jurnalList || !jurnalList.length) {
+    showResult('Gagal', 'Belum ada data jurnal untuk dicetak.', null);
+    return;
+  }
+  try {
+    const htmlContent = await drawRapor(null, siswa, jurnalList, range, 1, state.namaWali || '-', state.namaKepala || '-');
+    await unduhPdfDariHtml(htmlContent, `Jurnal_${siswa.nisn}_${siswa.nama_lengkap}.pdf`);
   } catch (e) {
-    btn.disabled = false;
-    btn.textContent = 'Cetak';
     showResult('Gagal', (e && e.message) || 'Gagal mencetak PDF.', null);
   }
 }
 
 byId('btnCetakSemua').addEventListener('click', async () => {
   const btn = byId('btnCetakSemua');
+  let range;
+  try { range = bacaTanggalCetak(); }
+  catch (e) { showResult('Gagal', e.message, null); return; }
   btn.disabled = true;
-  btn.textContent = 'Mencetak semua...';
-
+  btn.textContent = 'Memuat pratinjau...';
   if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); btn.disabled=false; btn.textContent='Cetak Semua Raport'; return; }
-
   try {
     const { data: siswaList, error: errSiswa } = await _sb
       .from('siswa')
       .select('nisn, nama_lengkap, kelas')
       .eq('kelas', state.kelas)
       .order('nisn');
-
     if (errSiswa) throw errSiswa;
 
+    const { data: jurnalList, error: errJurnal } = await _sb
+      .from('jurnal_harian')
+      .select('*')
+      .gte('tanggal_jurnal', range.start)
+      .lte('tanggal_jurnal', range.end);
+    if (errJurnal) throw errJurnal;
+
+    const byNisn = {};
+    (jurnalList || []).forEach(j => { (byNisn[j.nisn] = byNisn[j.nisn] || []).push(j); });
+
+    const daftar = (siswaList || [])
+      .map(s => ({ siswa: s, jurnalList: byNisn[s.nisn] || [] }))
+      .filter(item => item.jurnalList.length > 0);
+
+    if (!daftar.length) {
+      showResult('Gagal', 'Belum ada data jurnal pada rentang ini.', null);
+      btn.disabled = false;
+      btn.textContent = 'Cetak Semua Raport';
+      return;
+    }
+
+    const bagian = [];
+    for (let i = 0; i < daftar.length; i++) {
+      bagian.push(await drawRapor(null, daftar[i].siswa, daftar[i].jurnalList, range, i + 1, state.namaWali || '-', state.namaKepala || '-'));
+    }
+    const ringkasan = `<p style="text-align:center;color:var(--muted);">Kelas <strong style="color:var(--text);">${escapeHtml(state.kelas)}</strong> &middot; Periode <strong style="color:var(--text);">${formatTanggalIndo(range.start)} s.d. ${formatTanggalIndo(range.end)}</strong> &middot; ${daftar.length} siswa memiliki data jurnal.</p>`;
+    const html = ringkasan + bagian.map(h => '<div style="margin-bottom:24px;">' + h + '</div>').join('');
+    tampilkanPreview('Pratinjau Cetak Semua — Kelas ' + state.kelas, html, 'Ya, Cetak',
+      () => unduhPdfSemua(daftar, range));
+    btn.disabled = false;
+    btn.textContent = 'Cetak Semua Raport';
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Cetak Semua Raport';
+    showResult('Gagal', (e && e.message) || 'Gagal memuat pratinjau.', null);
+  }
+});
+
+/* Membuat & mengunduh satu PDF gabungan berisi laporan semua siswa pada daftar (rentang cetak).
+   Hanya dipanggil dari konfirmasi pratinjau (tombol "Ya, Cetak"). */
+async function unduhPdfSemua(daftar, range) {
+  try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
-
     let count = 0;
-    for (const siswa of siswaList) {
+    for (const item of daftar) {
       try {
-        const { data: jurnalList, error } = await _sb
-          .from('jurnal_harian')
-          .select('*')
-          .eq('nisn', siswa.nisn)
-          .order('tanggal_jurnal', { ascending: false });
-
-        if (error || !jurnalList || !jurnalList.length) continue;
-
-        // jurnalList terurut DESC: [0] = terbaru, terakhir = terlama
-    const range = { start: jurnalList[jurnalList.length-1].tanggal_jurnal, end: jurnalList[0].tanggal_jurnal };
-        const htmlContent = await drawRapor(null, siswa, jurnalList, range, count + 1, state.namaWali || '-', state.namaKepala || '-');
-
+        const htmlContent = await drawRapor(null, item.siswa, item.jurnalList, range, count + 1, state.namaWali || '-', state.namaKepala || '-');
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = htmlContent;
         tempDiv.style.position = 'fixed';
         tempDiv.style.top = '-10000px';
         tempDiv.style.width = '794px';
         document.body.appendChild(tempDiv);
-
         const canvas = await html2canvas(tempDiv, {
           logging: false,
           useCORS: true,
@@ -1461,30 +1601,24 @@ byId('btnCetakSemua').addEventListener('click', async () => {
           height: 1123
         });
         document.body.removeChild(tempDiv);
-
         const img = canvas.toDataURL('image/png');
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const imgWidth = pageWidth;
         const imgHeight = canvas.height * imgWidth / canvas.width;
-
         if (count > 0) doc.addPage();
         doc.addImage(img, 'PNG', 0, 0, imgWidth, imgHeight);
         count++;
       } catch (e) {
-        console.error('Gagal cetak siswa', siswa.nisn, e);
+        console.error('Gagal cetak siswa', item.siswa.nisn, e);
       }
     }
-
+    if (!count) { showResult('Gagal', 'Belum ada data jurnal untuk dicetak.', null); return; }
     doc.save(`Jurnal_Semua_${state.kelas}.pdf`);
-    btn.disabled = false;
-    btn.textContent = 'Cetak Semua Raport';
   } catch (e) {
-    btn.disabled = false;
-    btn.textContent = 'Cetak Semua Raport';
     showResult('Gagal', (e && e.message) || 'Gagal mencetak semua.', null);
   }
-});
+}
 
 
 function showToast(message) {
