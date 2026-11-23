@@ -957,7 +957,7 @@ function tampilkanView(nama){
 
 byId('closeResult').addEventListener('click',()=>overlayEl.classList.remove('show'));
 
-const state={ pin:'', kelas:'', siswa:[], namaWali:'', namaKepala:'', namaSekolah:'' };
+const state={ pin:'', kelas:'', siswa:[], namaWali:'', namaKepala:'', namaSekolah:'', semester:'', tahunPelajaran:'' };
 
 byId('btnLoginGuru').addEventListener('click',()=>{
   byId('pinInput').value='';
@@ -998,6 +998,8 @@ async function loginGuru(){
     state.namaWali=row.nama_wali||'';
     state.namaKepala=row.nama_kepala||'';
     state.namaSekolah=row.nama_sekolah||'';
+    state.semester=row.semester||'';
+    state.tahunPelajaran=row.tahun_pelajaran||'';
     byId('heroKelas').textContent=row.kelas;
     byId('heroJumlah').textContent=state.siswa.length+' siswa terdaftar di kelas ini.';
     byId('tglMonitoring').value=row.default_end||todayJakarta();
@@ -1023,7 +1025,7 @@ byId('pinInput').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preve
 const btnLogout = byId('btnLogout');
 if(btnLogout){
   btnLogout.addEventListener('click',()=>{
-    state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah='';
+    state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah=''; state.semester=''; state.tahunPelajaran='';
     byId('pinInput').value='';
     byId('pinErr').textContent='';
     tampilkanView('siswa');
@@ -1183,7 +1185,7 @@ byId('btnKonfirmasiCetak').addEventListener('click',()=>{
 function handleError(e){
   const m=(e && e.message)||'';
   if(/sesi berakhir|pin tidak valid|login ulang/i.test(m)){
-    state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah='';
+    state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah=''; state.semester=''; state.tahunPelajaran='';
     byId('pinInput').value='';
     byId('pinErr').textContent='Sesi berakhir. Silakan login ulang.';
     tampilkanView('login');
@@ -1264,12 +1266,21 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
   const terkuat = tabelData.reduce((max,d)=> (parseFloat(d[5])>parseFloat(max[5])?d:max), tabelData[0]);
   const catatan = adaData ? `Ananda ${escapeHtml(siswa.nama_lengkap||siswa.nama)} telah mengisi jurnal sebanyak ${jurnalList.length} hari. Kebiasaan yang paling kuat adalah ${escapeHtml(terkuat?.[1]||'-')}. ${keteranganPredikat(predAkhir)} setiap hari.` : 'Belum tersedia data jurnal pada periode yang dipilih.';
 
+  // Kop dinamis: nama sekolah, semester & tahun ajaran dari pengaturan_sekolah
+  // (dibawa saat login guru lewat RPC verifikasi_pin_guru). Kalau kosong,
+  // pakai nilai sekarang sebagai fallback supaya kop tidak pernah kosong.
+  const kopSekolah = (state.namaSekolah || 'SMP Bhakti Pertiwi').toUpperCase();
+  let kopSemester = String(state.semester || 'GANJIL').trim().toUpperCase().replace(/^SEMESTER\s+/, '');
+  if (kopSemester === '2' || kopSemester === 'II') kopSemester = 'GENAP';
+  if (kopSemester === '1' || kopSemester === 'I') kopSemester = 'GANJIL';
+  const kopTahun = String(state.tahunPelajaran || '2026/2027').trim();
+
   const htmlContent = `
   <div style="font-family: Arial, sans-serif; width: 900px; background: #fff; color: #333; font-size: 12px; box-sizing: border-box; padding: 20px;">
     <div style="background-color: #146e9f; color: white; text-align: center; padding: 15px 10px;">
       <h1 style="margin: 0; font-size: 28px; letter-spacing: 1px;">LAPORAN JURNAL HARIAN 7 KAIH</h1>
-      <h2 style="margin: 5px 0; font-size: 20px; color: #ffd700;">SMP BHAKTI PERTIWI</h2>
-      <p style="margin: 5px 0 0 0; font-size: 14px;">SEMESTER GANJIL - TAHUN PELAJARAN 2026/2027</p>
+      <h2 style="margin: 5px 0; font-size: 20px; color: #ffd700;">${kopSekolah}</h2>
+      <p style="margin: 5px 0 0 0; font-size: 14px;">SEMESTER ${kopSemester} - TAHUN PELAJARAN ${kopTahun}</p>
     </div>
     <div style="padding: 0 15px;">
       <table style="width: 100%; border-collapse: collapse; table-layout:fixed; margin-top: 20px; margin-bottom: 20px;">
