@@ -1243,89 +1243,116 @@ async function drawRapor(doc, siswa, jurnalList, range, nomor, waliKelas, namaKe
     const ket = keteranganPredikat(pred);
     totalNilai += nilai;
     countK++;
-    tabelData.push([String(i+1), kb.nama, String(a), String(b), String(c), nilai.toFixed(2), pred, ket]);
+    tabelData.push([String(i+1), kb.nama, String(a), String(b), String(c), total>0 ? nilai.toFixed(2) : '', total>0 ? pred : '-', total>0 ? ket : 'Belum ada data']);
   });
 
   const nilaiAkhir = countK>0 ? totalNilai/countK : 0;
   const predAkhir = hitungPredikat(nilaiAkhir);
+  const adaData = jurnalList.length > 0;
+  const periodeText = (range && range.start && range.end) ? formatTanggalIndo(range.start)+' s.d. '+formatTanggalIndo(range.end) : '-';
+  const _now = new Date();
+  const _isoHariIni = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
+  const tanggalHariIni = 'Tangerang, ' + formatTanggalIndo(_isoHariIni);
 
   const terkuat = tabelData.reduce((max,d)=> (parseFloat(d[5])>parseFloat(max[5])?d:max), tabelData[0]);
-  const catatan = `Ananda ${escapeHtml(siswa.nama_lengkap||siswa.nama)} telah mengisi jurnal sebanyak ${jurnalList.length} hari. Kebiasaan yang paling kuat adalah ${escapeHtml(terkuat?.[1]||'-')}. ${keteranganPredikat(predAkhir)} setiap hari.`;
+  const catatan = adaData ? `Ananda ${escapeHtml(siswa.nama_lengkap||siswa.nama)} telah mengisi jurnal sebanyak ${jurnalList.length} hari. Kebiasaan yang paling kuat adalah ${escapeHtml(terkuat?.[1]||'-')}. ${keteranganPredikat(predAkhir)} setiap hari.` : 'Belum tersedia data jurnal pada periode yang dipilih.';
 
   const htmlContent = `
   <div style="font-family: Arial, sans-serif; width: 794px; background: #fff; color: #333; font-size: 12px; box-sizing: border-box; padding: 20px;">
-    <div style="background-color: #146e9f; color: white; text-align: center; padding: 15px 10px; border-radius: 4px 4px 0 0;">
-      <h1 style="margin: 0; font-size: 24px; letter-spacing: 1px;">LAPORAN JURNAL HARIAN 7 KAIH</h1>
-      <h2 style="margin: 5px 0; font-size: 18px; color: #ffd700;">SMP BHAKTI PERTIWI</h2>
-      <p style="margin: 5px 0 0 0; font-size: 13px;">SEMESTER GANJIL - TAHUN PELAJARAN 2026/2027</p>
+    <div style="background-color: #146e9f; color: white; text-align: center; padding: 15px 10px;">
+      <h1 style="margin: 0; font-size: 28px; letter-spacing: 1px;">LAPORAN JURNAL HARIAN 7 KAIH</h1>
+      <h2 style="margin: 5px 0; font-size: 20px; color: #ffd700;">SMP BHAKTI PERTIWI</h2>
+      <p style="margin: 5px 0 0 0; font-size: 14px;">SEMESTER GANJIL - TAHUN PELAJARAN 2026/2027</p>
     </div>
-    <div style="padding: 10px 0;">
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+    <div style="padding: 0 15px;">
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px;">
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; font-weight: bold; width: 15%; background: #f9f9f9;">NISN</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; width: 35%;">${escapeHtml(siswa.nisn)}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; font-weight: bold; width: 15%; background: #f9f9f9;">Jumlah Mengisi</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; width: 35%; text-align:center;">${jurnalList.length}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; width: 15%;">NISN</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 35%;">${escapeHtml(siswa.nisn)}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold; width: 15%;">Jumlah Mengisi</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; width: 35%; text-align:center;">${jurnalList.length}</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; font-weight: bold; background: #f9f9f9;">Nama Siswa</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; width: 35%;">${escapeHtml(siswa.nama_lengkap)}</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; font-weight: bold; background: #f9f9f9;">Kelas</td>
-          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 13px; width: 35%; text-align:center;">${escapeHtml(siswa.kelas)}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Nama Siswa</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">${escapeHtml(siswa.nama_lengkap)}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Nilai Akhir</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; text-align:center;">${adaData ? nilaiAkhir.toFixed(2) : ''}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Kelas</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${escapeHtml(siswa.kelas)}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Predikat Akhir</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; text-align:center;">${adaData ? predAkhir : '-'}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Periode</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${periodeText}</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px; font-weight: bold;">Wali Kelas</td>
+          <td style="border: 1px solid #b0b0b0; padding: 8px 10px; font-size: 14px;">${escapeHtml(waliKelas||'-')}</td>
         </tr>
       </table>
 
-      ${range && range.start && range.end ? `<p style="margin:0 0 15px;font-size:13px;">Periode laporan: <strong>${formatTanggalIndo(range.start)} s.d. ${formatTanggalIndo(range.end)}</strong></p>` : ''}
+      <br>
 
-      <h3 style="color:#146e9f;margin-top:0;">Nilai Per Kebiasaan</h3>
-      <table style="width:100%;border-collapse:collapse;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
         <thead>
-          <tr style="background:#f2f2f2;">
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">No</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;">Kebiasaan</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">A</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">B</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">C</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">Nilai</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">Predikat</th>
-            <th style="border:1px solid #b0b0b0;padding:6px 8px;">Keterangan</th>
+          <tr>
+            <th width="5%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">No</th>
+            <th width="25%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Kebiasaan</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah A</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah B</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Jumlah C</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Rata-rata</th>
+            <th width="10%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Predikat</th>
+            <th width="20%" style="background-color:#146e9f;color:white;padding:10px;text-align:center;font-size:14px;border:1px solid #146e9f;">Keterangan</th>
           </tr>
         </thead>
         <tbody>
           ${tabelData.map(d=>`
             <tr>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${d[0]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;">${escapeHtml(d[1])}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${d[2]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${d[3]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${d[4]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${d[5]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;font-weight:bold;">${d[6]}</td>
-              <td style="border:1px solid #b0b0b0;padding:6px 8px;">${escapeHtml(d[7])}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[0]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:left;">${escapeHtml(d[1])}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[2]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[3]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[4]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${d[5]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;font-weight:bold;">${d[6]}</td>
+              <td style="border:1px solid #d0d0d0;padding:8px 10px;font-size:14px;text-align:center;">${escapeHtml(d[7])}</td>
             </tr>
           `).join('')}
-          <tr style="font-weight:bold;background:#f9f9f9;">
-            <td colspan="5" style="border:1px solid #b0b0b0;padding:6px 8px;">Nilai Akhir</td>
-            <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${nilaiAkhir.toFixed(2)}</td>
-            <td style="border:1px solid #b0b0b0;padding:6px 8px;text-align:center;">${predAkhir}</td>
-            <td style="border:1px solid #b0b0b0;padding:6px 8px;">${keteranganPredikat(predAkhir)}</td>
-          </tr>
         </tbody>
       </table>
 
-      <p style="margin-top:20px;font-size:11px;color:#666;">${catatan}</p>
+      <br>
 
-      <div style="margin-top:30px;border-top:1px solid #b0b0b0;padding-top:10px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div>
-            <div style="border-top:1px solid #333;width:200px;margin-top:40px;"></div>
-            <div style="font-size:12px;font-weight:bold;">Wali Kelas</div>
-            <div style="font-size:11px;">${escapeHtml(waliKelas||'-')}</div>
+      <div style="background-color:#d8e7f3;text-align:center;font-weight:bold;padding:8px;border:1px solid #c0d6e4;margin-bottom:10px;font-size:14px;">CATATAN PERKEMBANGAN</div>
+      <div style="border:1px solid #d0d0d0;padding:15px;font-size:14px;margin-bottom:30px;">${catatan}</div>
+
+      <div style="display:flex;justify-content:space-between;padding:20px 40px;font-size:14px;margin-bottom:20px;">
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+          <div style="margin-top:25px;">
+            Mengetahui,<br>
+            Orang Tua/Wali
           </div>
           <div>
-            <div style="border-top:1px solid #333;width:200px;margin-top:40px;"></div>
-            <div style="font-size:12px;font-weight:bold;">Kepala Sekolah</div>
-            <div style="font-size:11px;">${escapeHtml(namaKepala||'-')}</div>
+            ( ______________________ )
+          </div>
+        </div>
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+          <div style="margin-top:25px;">
+            Wali Kelas
+          </div>
+          <div style="font-weight:bold;">
+            ( ${escapeHtml(waliKelas||'-')} )
+          </div>
+        </div>
+        <div style="width:30%;display:flex;flex-direction:column;justify-content:space-between;height:130px;text-align:center;">
+          <div>
+            <div style="font-weight:bold;margin-bottom:5px;">${tanggalHariIni}</div>
+            <div>Kepala Sekolah</div>
+          </div>
+          <div style="font-weight:bold;">
+            ( ${escapeHtml(namaKepala||'-')} )
           </div>
         </div>
       </div>
