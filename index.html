@@ -773,7 +773,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
   <section id="viewRekap" class="content-card" style="display:none;">
     <div class="content-header">
       <h2>Rekap Isian Jurnal</h2>
-      <p>Lihat keseluruhan isian jurnal siswa kelas ini pada rentang tanggal yang dipilih.</p>
+      <p>Pilih rentang tanggal, lalu klik Rekap pada siswa untuk melihat isiannya pada rentang itu.</p>
     </div>
     <div class="content-body">
       <div class="section-head">
@@ -1062,27 +1062,30 @@ async function muatRekap(){
     if(!_sb) throw new Error('Koneksi Supabase belum siap.');
     btn.disabled=true; btn.textContent='Memuat...';
     const nisnList=(state.siswa||[]).map(s=>s.nisn);
-    const namaByNisn={}; (state.siswa||[]).forEach(s=>{ namaByNisn[s.nisn]=s.nama_lengkap||s.nama; });
     const { data, error } = await _sb.from('jurnal_harian')
       .select('id, nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
       .in('nisn', nisnList)
       .gte('tanggal_jurnal', range.start).lte('tanggal_jurnal', range.end)
-      .order('tanggal_jurnal', {ascending:false}).order('nisn')
+      .order('tanggal_jurnal', {ascending:false})
       .limit(2000);
     if(error) throw error;
     const rows=data||[];
-    const thRekap='background-color:#146e9f;color:white;padding:8px 6px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;letter-spacing:0;white-space:nowrap;';
-    const tdRekap='border:1px solid #d0d0d0;padding:8px 6px;font-size:14px;text-align:center;';
-    if(!rows.length){
-      byId('rekapTabelWrap').innerHTML='<p style="text-align:center;color:var(--muted);">Belum ada isian jurnal pada rentang ini.</p>';
-    } else {
-      let t=`<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th width="4%" style="${thRekap}">No</th><th width="11%" style="${thRekap}">Tanggal</th><th width="26%" style="${thRekap}">Nama</th><th width="7%" style="${thRekap}">Bangun</th><th width="7%" style="${thRekap}">Ibadah</th><th width="8%" style="${thRekap}">Olahraga</th><th width="7%" style="${thRekap}">Makan</th><th width="7%" style="${thRekap}">Belajar</th><th width="9%" style="${thRekap}">Masyarakat</th><th width="7%" style="${thRekap}">Tidur</th><th width="7%" style="${thRekap}">A/B/C</th></tr></thead><tbody>`;
-      rows.forEach((j,i)=>{
-        t+=`<tr><td style="${tdRekap}">${i+1}</td><td style="${tdRekap}white-space:nowrap;">${formatTanggalSingkat(j.tanggal_jurnal)}</td><td style="${tdRekap}text-align:left;">${escapeHtml(namaByNisn[j.nisn]||j.nisn)}</td><td style="${tdRekap}">${j.bangun_pagi||'-'}</td><td style="${tdRekap}">${j.beribadah||'-'}</td><td style="${tdRekap}">${j.berolahraga||'-'}</td><td style="${tdRekap}">${j.makan_sehat||'-'}</td><td style="${tdRekap}">${j.gemar_belajar||'-'}</td><td style="${tdRekap}">${j.bermasyarakat||'-'}</td><td style="${tdRekap}">${j.tidur_cepat||'-'}</td><td style="${tdRekap}font-weight:700;">${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td></tr>`;
+    const byNisn={}; rows.forEach(j=>{ (byNisn[j.nisn]=byNisn[j.nisn]||[]).push(j); });
+    // Daftar siswa seperti di Monitoring: No, NISN, Nama, Status, Aksi (Rekap per siswa).
+    let t=`<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="width:40px;">No</th><th>NISN</th><th>Nama Lengkap</th><th style="width:90px;">Status</th><th style="width:110px;">Aksi</th></tr></thead><tbody>`;
+    (state.siswa||[]).forEach((s,i)=>{
+      const js=byNisn[s.nisn]||[];
+      const sudah=js.length>0;
+      t+=`<tr><td>${i+1}</td><td class="nisn">${escapeHtml(s.nisn)}</td><td class="nama">${escapeHtml(s.nama_lengkap||s.nama)}</td><td class="sudah ${sudah?'yes':'no'}">${sudah?'Sudah':'Belum'}</td><td class="td-aksi"><button class="btn-mini btn-rekap-siswa" data-nisn="${escapeHtml(s.nisn)}"${sudah?'':' disabled'}>Rekap</button></td></tr>`;
+    });
+    t+='</tbody></table>';
+    byId('rekapTabelWrap').innerHTML=t;
+    byId('rekapTabelWrap').querySelectorAll('.btn-rekap-siswa').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const s=(state.siswa||[]).find(x=>x.nisn===b.dataset.nisn);
+        if(s) previewSiswa(s, byNisn[s.nisn]||[], {mode:'rekap', range, showDelete:true});
       });
-      t+='</tbody></table>';
-      byId('rekapTabelWrap').innerHTML=t;
-    }
+    });
     const isiSiswa=new Set(rows.map(j=>j.nisn)).size;
     byId('rekapInfo').textContent='Periode '+formatTanggalIndo(range.start)+' s.d. '+formatTanggalIndo(range.end)+' — '+rows.length+' entri dari '+isiSiswa+' siswa.';
     byId('infoJumlahRekap').textContent='Total '+rows.length+' entri.';
@@ -1240,7 +1243,7 @@ function renderTabelSiswa(){
     const tdAksi=document.createElement('td'); tdAksi.className='td-aksi';
     const btnLihat=document.createElement('button');
     btnLihat.className='btn-mini'; btnLihat.textContent='Lihat';
-    btnLihat.addEventListener('click',()=>previewSiswa(s));
+    btnLihat.addEventListener('click',()=>previewSiswa(s, null, {tanggal: byId('tglMonitoring').value || todayJakarta(), showDelete:false}));
     tdAksi.append(btnLihat);
     tr.append(tdNo,tdNisn,tdNama,tdStatus,tdAksi);
     tbody.appendChild(tr);
@@ -1550,7 +1553,7 @@ byId('btnCariKelas').addEventListener('click', async () => {
 
       const btnLihat = document.createElement('button');
       btnLihat.className = 'btn-mini'; btnLihat.textContent = 'Lihat';
-      btnLihat.addEventListener('click', () => previewSiswa(s, journals));
+      btnLihat.addEventListener('click', () => previewSiswa(s, journals, {tanggal, showDelete:false}));
 
       tdAksi.append(btnLihat);
       tr.append(tdNo, tdNisn, tdNama, tdStatus, tdAksi);
@@ -1586,7 +1589,8 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
     if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); if (btn) btn.textContent = labelBtn; return; }
     try {
       let q = _sb.from('jurnal_harian').select('*').eq('nisn', siswa.nisn);
-      if (modeCetak && range) q = q.gte('tanggal_jurnal', range.start).lte('tanggal_jurnal', range.end);
+      if (range) q = q.gte('tanggal_jurnal', range.start).lte('tanggal_jurnal', range.end);
+      else if (opts.tanggal) q = q.eq('tanggal_jurnal', opts.tanggal);
       const { data, error } = await q.order('tanggal_jurnal', { ascending: false });
       if (error) throw error;
       jurnalList = data || [];
@@ -1613,11 +1617,17 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
 
   const thDetail = 'background-color:#146e9f;color:white;padding:8px 6px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;letter-spacing:0;white-space:nowrap;';
   const tdDetail = 'border:1px solid #d0d0d0;padding:8px 6px;font-size:14px;text-align:center;';
-  let html = `<h3 style="margin:0 0 16px;font-size:18px;text-align:center;">${escapeHtml(siswa.nama_lengkap || siswa.nama)} (${siswa.kelas})</h3>`;
+  const showDelete = opts.showDelete === true;
+  const tanggalSatu = opts.tanggal || null;
+  let subJudul = '';
+  if (tanggalSatu) subJudul = `<p style="margin:0 0 16px;text-align:center;color:var(--muted);font-size:13px;">Tanggal ${formatTanggalSingkat(tanggalSatu)}</p>`;
+  else if (range) subJudul = `<p style="margin:0 0 16px;text-align:center;color:var(--muted);font-size:13px;">Periode ${formatTanggalIndo(range.start)} s.d. ${formatTanggalIndo(range.end)}</p>`;
+  let html = `<h3 style="margin:${subJudul ? '0 0 4px' : '0 0 16px'};font-size:18px;text-align:center;">${escapeHtml(siswa.nama_lengkap || siswa.nama)} (${siswa.kelas})</h3>` + subJudul;
   if (!jurnalList.length) {
     html += `<p style="text-align:center;color:var(--muted);">Belum ada data jurnal.</p>`;
   } else {
-    html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><thead><tr><th width="13%" style="${thDetail}">Tanggal</th><th width="9%" style="${thDetail}">Bangun</th><th width="9%" style="${thDetail}">Ibadah</th><th width="10%" style="${thDetail}">Olahraga</th><th width="9%" style="${thDetail}">Makan</th><th width="10%" style="${thDetail}">Belajar</th><th width="12%" style="${thDetail}">Masyarakat</th><th width="10%" style="${thDetail}">Tidur</th><th width="9%" style="${thDetail}">A/B/C</th><th width="9%" style="${thDetail}">Aksi</th></tr></thead><tbody>`;
+    const w = showDelete ? ['13%','9%','9%','10%','9%','10%','12%','10%','9%'] : ['14%','10%','10%','11%','10%','11%','13%','11%','10%'];
+    html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><thead><tr><th width="${w[0]}" style="${thDetail}">Tanggal</th><th width="${w[1]}" style="${thDetail}">Bangun</th><th width="${w[2]}" style="${thDetail}">Ibadah</th><th width="${w[3]}" style="${thDetail}">Olahraga</th><th width="${w[4]}" style="${thDetail}">Makan</th><th width="${w[5]}" style="${thDetail}">Belajar</th><th width="${w[6]}" style="${thDetail}">Masyarakat</th><th width="${w[7]}" style="${thDetail}">Tidur</th><th width="${w[8]}" style="${thDetail}">A/B/C</th>${showDelete ? `<th width="9%" style="${thDetail}">Aksi</th>` : ''}</tr></thead><tbody>`;
     jurnalList.forEach(j => {
       html += `<tr>
         <td style="${tdDetail}text-align:left;white-space:nowrap;">${formatTanggalSingkat(j.tanggal_jurnal)}</td>
@@ -1629,7 +1639,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
         <td style="${tdDetail}">${j.bermasyarakat||'-'}</td>
         <td style="${tdDetail}">${j.tidur_cepat||'-'}</td>
         <td style="${tdDetail}font-weight:700;">${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td>
-        <td style="${tdDetail}"><button class="btn-mini-danger btn-hapus-entri" data-id="${j.id||''}" data-tanggal="${j.tanggal_jurnal}">Hapus</button></td>
+        ${showDelete ? `<td style="${tdDetail}"><button class="btn-mini-danger btn-hapus-entri" data-id="${j.id||''}" data-tanggal="${j.tanggal_jurnal}">Hapus</button></td>` : ''}
       </tr>`;
     });
     html += `</tbody></table><p style="margin:0;color:var(--muted);font-size:13px;">Total ${jurnalList.length} entri jurnal</p>`;
@@ -1637,10 +1647,10 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
 
   resetModeOverlay();
   byId('resultBox').classList.add('preview');
-  byId('resultTitle').textContent = 'Detail Siswa';
+  byId('resultTitle').textContent = opts.mode === 'rekap' ? 'Rekap Siswa' : 'Detail Siswa';
   byId('resultMessage').innerHTML = html;
   byId('resultMessage').querySelectorAll('.btn-hapus-entri').forEach(b=>{
-    b.addEventListener('click',()=>hapusEntriJurnal(b.dataset.id, b.dataset.tanggal, siswa));
+    b.addEventListener('click',()=>hapusEntriJurnal(b.dataset.id, b.dataset.tanggal, siswa, opts));
   });
   byId('resultLink').style.display = 'none';
   overlayEl.classList.add('show');
@@ -1649,7 +1659,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
 
 /* Hapus satu entri jurnal (dari modal Lihat): konfirmasi dulu, lalu hapus lewat
    RPC hapus_jurnal yang memeriksa PIN guru — anon tidak punya hak DELETE. */
-async function hapusEntriJurnal(id, tanggal, siswa){
+async function hapusEntriJurnal(id, tanggal, siswa, opts = {}){
   if(!id) return;
   const namaSiswa = escapeHtml(siswa.nama_lengkap || siswa.nama);
   tampilkanPreview('Hapus Entri Jurnal',
@@ -1661,7 +1671,7 @@ async function hapusEntriJurnal(id, tanggal, siswa){
         const { error } = await _sb.rpc('hapus_jurnal', { p_pin: state.pin, p_id: id });
         if(error) throw error;
         showToast('Entri jurnal berhasil dihapus.');
-        previewSiswa(siswa);
+        previewSiswa(siswa, null, opts);
       } catch(e) {
         showResult('Gagal', (e && e.message) || 'Gagal menghapus entri.', null);
       }
