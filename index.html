@@ -1576,7 +1576,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
   // "Ya, Cetak" (tombol Cetak per baris di view Cetak). Tidak ada jalur cetak tanpa pratinjau.
   const modeCetak = opts.mode === 'cetak';
   const btn = document.activeElement;
-  const labelBtn = modeCetak ? 'Cetak' : 'Lihat';
+  const labelBtn = modeCetak ? 'Cetak' : (opts.mode === 'rekap' ? 'Rekap' : 'Lihat');
   if (btn) btn.textContent = 'Memuat...';
 
   let range = opts.range || null;
@@ -1654,7 +1654,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
   });
   byId('resultLink').style.display = 'none';
   overlayEl.classList.add('show');
-  if (btn) btn.textContent = 'Lihat';
+  if (btn) btn.textContent = labelBtn;
 }
 
 /* Hapus satu entri jurnal (dari modal Lihat): konfirmasi dulu, lalu hapus lewat
