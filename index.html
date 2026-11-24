@@ -693,8 +693,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
       </div>
 
       <div class="actions" style="margin-top:24px;">
-        <button class="clear-button" type="button" id="btnBatalMonitoring">Kembali</button>
-        <button class="clear-button" type="button" id="btnLogout">Keluar</button>
+        <button class="clear-button" type="button" id="btnBatalMonitoring">← Kembali ke Formulir</button>
         <button class="submit-button" id="btnCariKelas" type="button"><span>Muat Data</span></button>
         <button class="submit-button" id="btnBukaCetak" type="button" style="background:linear-gradient(135deg,#10B981,#059669);"><i class="fa-solid fa-print"></i> Cetak Laporan</button>
       </div>
@@ -744,6 +743,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
 
       <div class="actions" style="margin-top:24px;">
         <button class="clear-button" type="button" id="btnKembaliDariCetak">Kembali ke Monitoring</button>
+        <button class="clear-button" type="button" id="btnKembaliKeFormulirDariCetak">← Kembali ke Formulir</button>
         <button class="submit-button" id="btnCetakSemua" type="button" style="background:linear-gradient(135deg,#10B981,#059669);"><i class="fa-solid fa-print"></i> Cetak Semua Rapor</button>
         <button class="clear-button" id="btnExportExcel" type="button"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
       </div>
@@ -986,7 +986,6 @@ byId('btnLoginGuru').addEventListener('click',()=>{
   setTimeout(()=>byId('pinInput').focus(),150);
 });
 byId('btnBatalLogin').addEventListener('click',()=>tampilkanView('siswa'));
-byId('btnBatalMonitoring').addEventListener('click',()=>tampilkanView('siswa'));
 byId('btnKembaliDariCetak').addEventListener('click',()=>tampilkanView('monitoring'));
 byId('btnBukaCetak').addEventListener('click',()=>{
   byId('heroKelasCetak').textContent = byId('heroKelas').textContent;
@@ -1005,14 +1004,14 @@ async function loginGuru(){
   if(!_sb){ showResult('Gagal','Koneksi Supabase belum siap. Periksa internet dan refresh halaman.',null); btn.disabled=false; btn.textContent='Masuk'; return; }
   try {
     const { data, error } = await _sb
-      .rpc('verifikasi_pin_guru', { pin_input: pin.toUpperCase() });
+      .rpc('verifikasi_pin_guru', { pin_input: pin });
     if(error) throw error;
     // RPC mengembalikan SATU objek JSON {kelas, siswa, default_start, ...}
     // (kalau Supabase mengembalikan array, ambil elemen pertamanya)
     const row = Array.isArray(data) ? data[0] : data;
     if(!row || !row.kelas) throw new Error('PIN tidak dikenali. Periksa kembali.');
     btn.disabled=false; btn.textContent='Masuk';
-    state.pin=pin.toUpperCase();
+    state.pin=pin;
     state.kelas=row.kelas;
     state.siswa=row.siswa||[];
     state.namaWali=row.nama_wali||'';
@@ -1042,15 +1041,15 @@ async function loginGuru(){
 byId('btnMasuk').addEventListener('click',loginGuru);
 byId('pinInput').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); loginGuru(); }});
 
-const btnLogout = byId('btnLogout');
-if(btnLogout){
-  btnLogout.addEventListener('click',()=>{
-    state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah=''; state.semester=''; state.tahunPelajaran='';
-    byId('pinInput').value='';
-    byId('pinErr').textContent='';
-    tampilkanView('siswa');
-  });
+/* Kembali ke formulir siswa (dari Monitoring maupun Cetak): bersihkan sesi guru. */
+function keluarKeFormulir(){
+  state.pin=''; state.kelas=''; state.siswa=[]; state.namaWali=''; state.namaKepala=''; state.namaSekolah=''; state.semester=''; state.tahunPelajaran='';
+  byId('pinInput').value='';
+  byId('pinErr').textContent='';
+  tampilkanView('siswa');
 }
+byId('btnBatalMonitoring').addEventListener('click',keluarKeFormulir);
+byId('btnKembaliKeFormulirDariCetak').addEventListener('click',keluarKeFormulir);
 
 byId('btnExportExcel').addEventListener('click',()=>{
   const rows=[];const header=['No','NISN','Nama','Status'];
