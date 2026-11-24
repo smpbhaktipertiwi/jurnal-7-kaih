@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.jurnal7kaihbp.twa",
+        "sha256_cert_fingerprints": ["16:6F:31:8E:CB:88:43:4E:00:12:37:FE:2D:BA:7A:D8:1A:EF:EC:82:7E:22:DB:FD:46:85:3A:27:1B:06:46:4A"]
+      }
+    }]
