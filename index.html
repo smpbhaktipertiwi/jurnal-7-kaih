@@ -381,6 +381,8 @@ td.sudah.yes{color:#22c55e;}
 td.sudah.no{color:#f87171;}
 .btn-mini{padding:6px 12px;font-size:12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);margin-right:6px;display:inline-block;}
 .btn-mini:hover{border-color:var(--gold);color:var(--gold);}
+.btn-mini-danger{padding:6px 12px;font-size:12px;border-radius:8px;background:rgba(220,38,38,0.12);border:1px solid rgba(220,38,38,0.4);color:#FCA5A5;display:inline-block;cursor:pointer;}
+.btn-mini-danger:hover{border-color:#EF4444;color:#FECACA;}
 .td-aksi{display:flex;gap:6px;align-items:center;}
 
 /* STATUS & TOAST */
@@ -696,6 +698,7 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
         <button class="clear-button" type="button" id="btnBatalMonitoring">← Kembali ke Formulir</button>
         <button class="submit-button" id="btnCariKelas" type="button"><span>Muat Data</span></button>
         <button class="submit-button" id="btnBukaCetak" type="button" style="background:linear-gradient(135deg,#10B981,#059669);"><i class="fa-solid fa-print"></i> Cetak Laporan</button>
+        <button class="submit-button" id="btnBukaRekap" type="button" style="background:linear-gradient(135deg,#146e9f,#0e4a73);"><i class="fa-solid fa-table-list"></i> Rekap Isian</button>
       </div>
 
       <div id="tabelContainer" style="margin-top:24px;overflow-x:auto;">
@@ -762,6 +765,45 @@ html[data-theme="light"] .habit-title{color:#0f172a;}
           </thead>
           <tbody id="tabelCetakSiswa"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REKAP ISIAN JURNAL ============ -->
+  <section id="viewRekap" class="content-card" style="display:none;">
+    <div class="content-header">
+      <h2>Rekap Isian Jurnal</h2>
+      <p>Lihat keseluruhan isian jurnal siswa kelas ini pada rentang tanggal yang dipilih.</p>
+    </div>
+    <div class="content-body">
+      <div class="section-head">
+        <div>
+          <h2 id="heroKelasRekap">Kelas</h2>
+          <p id="heroJumlahRekap" style="margin:0 0 8px 0;">siswa terdaftar di kelas ini.</p>
+        </div>
+        <div class="count" id="infoJumlahRekap">Total 0 entri.</div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="tglAwalRekap">Tanggal Awal</label>
+          <input id="tglAwalRekap" type="date" required>
+        </div>
+        <div class="field">
+          <label for="tglAkhirRekap">Tanggal Akhir</label>
+          <input id="tglAkhirRekap" type="date" required>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:24px;">
+        <button class="clear-button" type="button" id="btnKembaliDariRekap">Kembali ke Monitoring</button>
+        <button class="clear-button" type="button" id="btnKembaliKeFormulirDariRekap">← Kembali ke Formulir</button>
+        <button class="submit-button" id="btnTampilRekap" type="button"><span>Tampilkan Rekap</span></button>
+      </div>
+
+      <div id="rekapContainer" style="margin-top:24px;overflow-x:auto;">
+        <p id="rekapInfo" style="color:var(--muted);font-size:14px;margin:0 0 12px 0;">Pilih rentang tanggal lalu klik "Tampilkan Rekap".</p>
+        <div id="rekapTabelWrap"></div>
       </div>
     </div>
   </section>
@@ -968,7 +1010,7 @@ formEl.addEventListener('submit',async e=>{
 /* ============================================================
    LOGIN GURU & HALAMAN CETAK / MONITORING
 ============================================================ */
-const views={ siswa:byId('viewSiswa'), login:byId('viewLogin'), monitoring:byId('viewMonitoring'), cetak:byId('viewCetak') };
+const views={ siswa:byId('viewSiswa'), login:byId('viewLogin'), monitoring:byId('viewMonitoring'), cetak:byId('viewCetak'), rekap:byId('viewRekap') };
 function tampilkanView(nama){
   Object.values(views).forEach(v=>v.style.display='none');
   views[nama].style.display='block';
@@ -993,6 +1035,69 @@ byId('btnBukaCetak').addEventListener('click',()=>{
   byId('infoJumlahCetak').textContent = byId('infoJumlah').textContent;
   tampilkanView('cetak');
   muatDaftarCetak();
+});
+
+/* ===== REKAP ISIAN JURNAL ===== */
+function bacaTanggalRekap(){
+  const a=byId('tglAwalRekap').value, b=byId('tglAkhirRekap').value;
+  if(!a||!b) throw new Error('Pilih tanggal awal dan tanggal akhir.');
+  if(a>b) throw new Error('Tanggal awal tidak boleh setelah tanggal akhir.');
+  return {start:a, end:b};
+}
+function tampilkanRekap(){
+  const today=todayJakarta();
+  byId('tglAwalRekap').value=today.slice(0,8)+'01';
+  byId('tglAkhirRekap').value=today;
+  byId('heroKelasRekap').textContent=state.kelas;
+  byId('heroJumlahRekap').textContent=(state.siswa||[]).length+' siswa terdaftar di kelas ini.';
+  byId('infoJumlahRekap').textContent='Total 0 entri.';
+  byId('rekapInfo').textContent='Pilih rentang tanggal lalu klik "Tampilkan Rekap".';
+  byId('rekapTabelWrap').innerHTML='';
+  tampilkanView('rekap');
+}
+async function muatRekap(){
+  const btn=byId('btnTampilRekap');
+  try {
+    const range=bacaTanggalRekap();
+    if(!_sb) throw new Error('Koneksi Supabase belum siap.');
+    btn.disabled=true; btn.textContent='Memuat...';
+    const nisnList=(state.siswa||[]).map(s=>s.nisn);
+    const namaByNisn={}; (state.siswa||[]).forEach(s=>{ namaByNisn[s.nisn]=s.nama_lengkap||s.nama; });
+    const { data, error } = await _sb.from('jurnal_harian')
+      .select('id, nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
+      .in('nisn', nisnList)
+      .gte('tanggal_jurnal', range.start).lte('tanggal_jurnal', range.end)
+      .order('tanggal_jurnal', {ascending:false}).order('nisn')
+      .limit(2000);
+    if(error) throw error;
+    const rows=data||[];
+    const thRekap='background-color:#146e9f;color:white;padding:8px 6px;text-align:center;font-size:13px;border:1px solid #146e9f;text-transform:none;letter-spacing:0;white-space:nowrap;';
+    const tdRekap='border:1px solid #d0d0d0;padding:8px 6px;font-size:14px;text-align:center;';
+    if(!rows.length){
+      byId('rekapTabelWrap').innerHTML='<p style="text-align:center;color:var(--muted);">Belum ada isian jurnal pada rentang ini.</p>';
+    } else {
+      let t=`<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th width="4%" style="${thRekap}">No</th><th width="11%" style="${thRekap}">Tanggal</th><th width="26%" style="${thRekap}">Nama</th><th width="7%" style="${thRekap}">Bangun</th><th width="7%" style="${thRekap}">Ibadah</th><th width="8%" style="${thRekap}">Olahraga</th><th width="7%" style="${thRekap}">Makan</th><th width="7%" style="${thRekap}">Belajar</th><th width="9%" style="${thRekap}">Masyarakat</th><th width="7%" style="${thRekap}">Tidur</th><th width="7%" style="${thRekap}">A/B/C</th></tr></thead><tbody>`;
+      rows.forEach((j,i)=>{
+        t+=`<tr><td style="${tdRekap}">${i+1}</td><td style="${tdRekap}white-space:nowrap;">${formatTanggalSingkat(j.tanggal_jurnal)}</td><td style="${tdRekap}text-align:left;">${escapeHtml(namaByNisn[j.nisn]||j.nisn)}</td><td style="${tdRekap}">${j.bangun_pagi||'-'}</td><td style="${tdRekap}">${j.beribadah||'-'}</td><td style="${tdRekap}">${j.berolahraga||'-'}</td><td style="${tdRekap}">${j.makan_sehat||'-'}</td><td style="${tdRekap}">${j.gemar_belajar||'-'}</td><td style="${tdRekap}">${j.bermasyarakat||'-'}</td><td style="${tdRekap}">${j.tidur_cepat||'-'}</td><td style="${tdRekap}font-weight:700;">${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td></tr>`;
+      });
+      t+='</tbody></table>';
+      byId('rekapTabelWrap').innerHTML=t;
+    }
+    const isiSiswa=new Set(rows.map(j=>j.nisn)).size;
+    byId('rekapInfo').textContent='Periode '+formatTanggalIndo(range.start)+' s.d. '+formatTanggalIndo(range.end)+' — '+rows.length+' entri dari '+isiSiswa+' siswa.';
+    byId('infoJumlahRekap').textContent='Total '+rows.length+' entri.';
+    btn.disabled=false; btn.textContent='Tampilkan Rekap';
+  } catch(e) {
+    byId('rekapInfo').textContent=(e && e.message) || 'Gagal memuat rekap.';
+    btn.disabled=false; btn.textContent='Tampilkan Rekap';
+  }
+}
+byId('btnBukaRekap').addEventListener('click',tampilkanRekap);
+byId('btnTampilRekap').addEventListener('click',muatRekap);
+byId('btnKembaliDariRekap').addEventListener('click',()=>tampilkanView('monitoring'));
+byId('btnKembaliKeFormulirDariRekap').addEventListener('click',keluarKeFormulir);
+['tglAwalRekap','tglAkhirRekap'].forEach(id=>{
+  byId(id).addEventListener('change',()=>{ if(views.rekap.style.display!=='none') muatRekap(); });
 });
 
 async function loginGuru(){
@@ -1176,7 +1281,8 @@ function showResult(title,msgText,url){
 
 /* Pratinjau sebelum cetak: tampilkan isi yang akan dicetak beserta tombol konfirmasi.
    Tidak ada jalur cetak yang melewati pratinjau ini. */
-function tampilkanPreview(judul, html, labelKonfirmasi, onKonfirmasi){
+let teksToastPreview='Membuat PDF, mohon tunggu...';
+function tampilkanPreview(judul, html, labelKonfirmasi, onKonfirmasi, teksToast){
   byId('resultTitle').textContent=judul;
   byId('resultMessage').innerHTML=html;
   byId('resultLink').style.display='none';
@@ -1184,6 +1290,7 @@ function tampilkanPreview(judul, html, labelKonfirmasi, onKonfirmasi){
   byId('previewActions').style.display='flex';
   byId('btnKonfirmasiCetak').textContent=labelKonfirmasi||'Ya, Cetak';
   aksiPreview=onKonfirmasi||null;
+  teksToastPreview=teksToast||'Membuat PDF, mohon tunggu...';
   byId('resultBox').classList.add('preview');
   overlayEl.classList.add('show');
 }
@@ -1198,7 +1305,7 @@ byId('btnBatalPreview').addEventListener('click',tutupPreview);
 byId('btnKonfirmasiCetak').addEventListener('click',()=>{
   const aksi=aksiPreview;
   tutupPreview();
-  if(aksi){ showToast('Membuat PDF, mohon tunggu...'); aksi(); }
+  if(aksi){ showToast(teksToastPreview); aksi(); }
 });
 
 function handleError(e){
@@ -1416,7 +1523,7 @@ byId('btnCariKelas').addEventListener('click', async () => {
 
     const { data: jurnalList, error: errJurnal } = await _sb
       .from('jurnal_harian')
-      .select('nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
+      .select('id, nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
       .eq('tanggal_jurnal', tanggal);
 
     if (errJurnal) throw errJurnal;
@@ -1510,7 +1617,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
   if (!jurnalList.length) {
     html += `<p style="text-align:center;color:var(--muted);">Belum ada data jurnal.</p>`;
   } else {
-    html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><thead><tr><th width="14%" style="${thDetail}">Tanggal</th><th width="10%" style="${thDetail}">Bangun</th><th width="10%" style="${thDetail}">Ibadah</th><th width="11%" style="${thDetail}">Olahraga</th><th width="10%" style="${thDetail}">Makan</th><th width="11%" style="${thDetail}">Belajar</th><th width="13%" style="${thDetail}">Masyarakat</th><th width="11%" style="${thDetail}">Tidur</th><th width="10%" style="${thDetail}">A/B/C</th></tr></thead><tbody>`;
+    html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;"><thead><tr><th width="13%" style="${thDetail}">Tanggal</th><th width="9%" style="${thDetail}">Bangun</th><th width="9%" style="${thDetail}">Ibadah</th><th width="10%" style="${thDetail}">Olahraga</th><th width="9%" style="${thDetail}">Makan</th><th width="10%" style="${thDetail}">Belajar</th><th width="12%" style="${thDetail}">Masyarakat</th><th width="10%" style="${thDetail}">Tidur</th><th width="9%" style="${thDetail}">A/B/C</th><th width="9%" style="${thDetail}">Aksi</th></tr></thead><tbody>`;
     jurnalList.forEach(j => {
       html += `<tr>
         <td style="${tdDetail}text-align:left;white-space:nowrap;">${formatTanggalSingkat(j.tanggal_jurnal)}</td>
@@ -1522,6 +1629,7 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
         <td style="${tdDetail}">${j.bermasyarakat||'-'}</td>
         <td style="${tdDetail}">${j.tidur_cepat||'-'}</td>
         <td style="${tdDetail}font-weight:700;">${j.jumlah_a||0}/${j.jumlah_b||0}/${j.jumlah_c||0}</td>
+        <td style="${tdDetail}"><button class="btn-mini-danger btn-hapus-entri" data-id="${j.id||''}" data-tanggal="${j.tanggal_jurnal}">Hapus</button></td>
       </tr>`;
     });
     html += `</tbody></table><p style="margin:0;color:var(--muted);font-size:13px;">Total ${jurnalList.length} entri jurnal</p>`;
@@ -1531,9 +1639,34 @@ async function previewSiswa(siswa, jurnalList = null, opts = {}) {
   byId('resultBox').classList.add('preview');
   byId('resultTitle').textContent = 'Detail Siswa';
   byId('resultMessage').innerHTML = html;
+  byId('resultMessage').querySelectorAll('.btn-hapus-entri').forEach(b=>{
+    b.addEventListener('click',()=>hapusEntriJurnal(b.dataset.id, b.dataset.tanggal, siswa));
+  });
   byId('resultLink').style.display = 'none';
   overlayEl.classList.add('show');
   if (btn) btn.textContent = 'Lihat';
+}
+
+/* Hapus satu entri jurnal (dari modal Lihat): konfirmasi dulu, lalu hapus lewat
+   RPC hapus_jurnal yang memeriksa PIN guru — anon tidak punya hak DELETE. */
+async function hapusEntriJurnal(id, tanggal, siswa){
+  if(!id) return;
+  const namaSiswa = escapeHtml(siswa.nama_lengkap || siswa.nama);
+  tampilkanPreview('Hapus Entri Jurnal',
+    `<p style="margin:0 0 8px;">Entri jurnal <strong>${namaSiswa} (${siswa.kelas})</strong> tanggal <strong>${formatTanggalSingkat(tanggal)}</strong> akan dihapus permanen dan tidak bisa dikembalikan.</p><p style="margin:0;color:var(--muted);font-size:13px;">Lanjutkan menghapus entri ini?</p>`,
+    'Ya, Hapus',
+    async ()=>{
+      try {
+        if(!_sb) throw new Error('Koneksi Supabase belum siap.');
+        const { error } = await _sb.rpc('hapus_jurnal', { p_pin: state.pin, p_id: id });
+        if(error) throw error;
+        showToast('Entri jurnal berhasil dihapus.');
+        previewSiswa(siswa);
+      } catch(e) {
+        showResult('Gagal', (e && e.message) || 'Gagal menghapus entri.', null);
+      }
+    },
+    'Menghapus entri, mohon tunggu...');
 }
 
 /* Merender satu laporan (HTML) menjadi PDF A4. Dipakai untuk cetak per siswa. */
