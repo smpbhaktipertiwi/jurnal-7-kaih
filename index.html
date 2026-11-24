@@ -843,6 +843,7 @@ nisEl.addEventListener('input',()=>{
         kelasEl.value=data.kelas;
         lookupEl.className='lookup ok';
         lookupEl.textContent='✓ Data siswa ditemukan';
+        cekDuplikatDini(v);
       } catch(e) {
         if(nisEl.value!==v)return;
         lookupEl.className='lookup err';
@@ -853,11 +854,30 @@ nisEl.addEventListener('input',()=>{
 });
 
 function msg(type,text){
-  alertEl.className='alert '+type;
+  alertEl.className='alert '+(type==='success'?'ok':'err');
   alertEl.textContent=(type==='success'?'Berhasil: ':'Perhatian: ')+text;
   alertEl.style.display='block';
-  window.scrollTo({top:0,behavior:'smooth'});
+  alertEl.scrollIntoView({behavior:'smooth',block:'center'});
 }
+
+/* Peringatan dini dobel: begitu NISN ditemukan (atau tanggal diubah), cek apakah
+   tanggal itu sudah terisi — supaya siswa langsung tahu sebelum mengisi 7 kebiasaan. */
+async function cekDuplikatDini(nisn){
+  if(!_sb || !tanggalEl.value) return;
+  try {
+    const { data, error } = await _sb.from('jurnal_harian').select('id').eq('nisn', nisn).eq('tanggal_jurnal', tanggalEl.value).maybeSingle();
+    if(error) throw error;
+    if(data){
+      msg('error','Anda sudah mengisi jurnal pada tanggal '+formatTanggalSingkat(tanggalEl.value)+'. Data tidak boleh duplikat.');
+    } else if(alertEl.textContent.includes('sudah mengisi jurnal')){
+      alertEl.style.display='none';
+      alertEl.textContent='';
+    }
+  } catch(e) { console.warn('Gagal cek duplikasi:', e); }
+}
+tanggalEl.addEventListener('change',()=>{
+  if(namaEl.value) cekDuplikatDini(nisEl.value.replace(/\D/g,'').slice(0,10));
+});
 function unlock(){sendEl.disabled=false;sendEl.textContent='Kirim Jurnal Hari Ini →'}
 
 formEl.addEventListener('submit',async e=>{
@@ -881,7 +901,7 @@ formEl.addEventListener('submit',async e=>{
       .maybeSingle();
     if(errCek) throw errCek;
     if(cek){
-      msg('error','Anda sudah mengisi jurnal pada tanggal '+tanggal+'. Data tidak boleh duplikat.');
+      msg('error','Anda sudah mengisi jurnal pada tanggal '+formatTanggalSingkat(tanggal)+'. Data tidak boleh duplikat.');
       unlock();
       return;
     }
@@ -937,7 +957,7 @@ formEl.addEventListener('submit',async e=>{
   } catch(e) {
     const pesan = (e && e.message) || 'Pengiriman gagal.';
     if(pesan.includes('duplicate key')||pesan.includes('unique_siswa_tanggal')){
-      msg('error','Anda sudah mengisi jurnal pada tanggal '+tanggal+'. Data tidak boleh duplikat.');
+      msg('error','Anda sudah mengisi jurnal pada tanggal '+formatTanggalSingkat(tanggal)+'. Data tidak boleh duplikat.');
     } else {
       msg('error',pesan+' Silakan coba kembali.');
     }
