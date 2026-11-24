@@ -1560,6 +1560,10 @@ byId('btnCariKelas').addEventListener('click', async () => {
       tbody.appendChild(tr);
     });
 
+    let sudahCount = 0;
+    (siswaList || []).forEach(s => { if ((byNisn[s.nisn] || []).length > 0) sudahCount++; });
+    const belumCount = (siswaList || []).length - sudahCount;
+    byId('infoJumlah').textContent = 'Total ' + (siswaList || []).length + ' siswa • Sudah ' + sudahCount + ' • Belum ' + belumCount + '.';
     byId('tabelMonitoring').style.display = 'table';
     btn.disabled = false;
     btn.textContent = 'Muat Data';
