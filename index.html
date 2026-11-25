@@ -1535,6 +1535,9 @@ byId('btnCariKelas').addEventListener('click', async () => {
 
     if (errSiswa) throw errSiswa;
 
+    // Revisi 11: urutkan nama siswa A-Z (alfabetis) di Monitoring.
+    (siswaList || []).sort((a, b) => (a.nama_lengkap || a.nama || '').localeCompare(b.nama_lengkap || b.nama || '', 'id'));
+
     const { data: jurnalList, error: errJurnal } = await _sb
       .from('jurnal_harian')
       .select('id, nisn, tanggal_jurnal, bangun_pagi, beribadah, berolahraga, makan_sehat, gemar_belajar, bermasyarakat, tidur_cepat, jumlah_a, jumlah_b, jumlah_c')
