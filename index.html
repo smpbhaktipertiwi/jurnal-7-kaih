@@ -1133,6 +1133,9 @@ async function loginGuru(){
     state.pin=pin;
     state.kelas=row.kelas;
     state.siswa=row.siswa||[];
+    // Revisi 11.1: urutkan daftar siswa A-Z sejak login, supaya Monitoring
+    // langsung alfabetis (daftar dari RPC masih urut NISN).
+    state.siswa.sort((a, b) => (a.nama_lengkap || a.nama || '').localeCompare(b.nama_lengkap || b.nama || '', 'id'));
     state.namaWali=row.nama_wali||'';
     state.namaKepala=row.nama_kepala||'';
     state.namaSekolah=row.nama_sekolah||'';

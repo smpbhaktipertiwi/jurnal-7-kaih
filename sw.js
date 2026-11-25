@@ -1,7 +1,7 @@
 /* Service worker Jurnal 7 KAIH — supaya aplikasi bisa diinstal (PWA).
    Halaman selalu diambil dari jaringan dulu (agar revisi terbaru langsung
    terpakai), file statis diambil dari cache bila sudah pernah dimuat. */
-const CACHE = 'jurnal-7kaih-v1';
+const CACHE = 'jurnal-7kaih-v2';
 const ASSETS = [
   '/',
  '/index.html',
